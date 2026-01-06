@@ -50,117 +50,114 @@ global {
     // ============ INITIALISATION ============
     
     init {
-	    write "=== INITIALISATION SIMULATION RIZIERES ===";
-	    write "Dimensions: " + string(largeur_grille) + "x" + string(hauteur_grille);
-	    
-	    // Initialisation de la grille
-	    ask zone_terre {
-	        salinite_sol <- rnd(0.5, 2.0);
-	    }
-	    
-	    // Création des canaux
-	    create canal number: nb_canaux {
-	        location <- {rnd(float(largeur_grille) * taille_cellule), 
-	                     rnd(float(hauteur_grille) * taille_cellule)};
-	        distance_mer <- rnd(5.0, 50.0);
-	        
-	        if distance_mer < 20.0 {
-	            salinite_eau <- rnd(2.0, 5.0);
-	        } else {
-	            salinite_eau <- rnd(0.5, 2.0);
-	        }
-	        
-	        etat_ecluse <- true;
-	        parcelles_connectees <- [];
-	        
-	        write "Canal " + string(name) + " créé à " + string(distance_mer) + "km de la mer";
-	    }
-	    
-	    // Création des parcelles
-	    create parcelle number: nb_parcelles {
-	        location <- {rnd(float(largeur_grille) * taille_cellule), 
-	                     rnd(float(hauteur_grille) * taille_cellule)};
-	        taille <- rnd(0.5, 2.0);
-	        salinite <- rnd(0.5, 3.0);
-	        niveau_eau <- rnd(5.0, 15.0);
-	        stade_croissance <- 0;
-	        
-	        if flip(0.7) {
-	            type_riz <- "traditionnel";
-	            rendement_potentiel <- 5.0;
-	        } else {
-	            type_riz <- "resistant_sel";
-	            rendement_potentiel <- 6.0;
-	        }
-	        
-	        rendement_reel <- 0.0;
-	        
-	        canal_connecte <- canal closest_to self;
-	        if canal_connecte != nil {
-	            ask canal_connecte {
-	                parcelles_connectees <- parcelles_connectees + myself;
-	            }
-	        }
-	    }
-	    
-	    // Création des agriculteurs
-	    create agriculteur number: nb_agriculteurs {
-	        location <- {rnd(float(largeur_grille) * taille_cellule), 
-	                     rnd(float(hauteur_grille) * taille_cellule)};
-	        capital <- rnd(10000000.0, 50000000.0);
-	        experience <- rnd(1, 20);
-	        
-	        if experience < 5 {
-	            strategie <- "suiveur";
-	        } else if experience < 10 {
-	            strategie <- "prudent";
-	        } else {
-	            strategie <- "optimiste";
-	        }
-	        
-	        connaissances_salinite <- float(experience) / 20.0;
-	        a_pompe <- flip(0.6);
-	        mes_parcelles <- [];
-	        
-	        int nb_parcelles_attribuees <- rnd(2, 5);
-	        list<parcelle> parcelles_disponibles <- list<parcelle>(parcelle where (each.proprietaire = nil));
-	        
-	        loop times: nb_parcelles_attribuees {
-	            if !empty(parcelles_disponibles) {
-	                parcelle p <- one_of(parcelles_disponibles);
-	                p.proprietaire <- self;
-	                mes_parcelles <- mes_parcelles + p;
-	                parcelles_disponibles <- parcelles_disponibles - p;
-	            }
-	        }
-	        
-	        voisins <- list<agriculteur>((agriculteur at_distance 1000.0) - self);
-	        
-	        write "Agriculteur " + string(name) + " (" + strategie + ") avec " 
-	              + string(length(mes_parcelles)) + " parcelles";
-	    }
-	    
-	    // Création des capteurs
-	    create capteur number: nb_capteurs {
-	        location <- {rnd(float(largeur_grille) * taille_cellule), 
-	                     rnd(float(hauteur_grille) * taille_cellule)};
-	        rayon_mesure <- 2000.0;
-	        frequence_mesure <- 24;
-	    }
-	    
-	    // Création des conseiller
-	    create conseiller number: nb_conseillers {
-	        location <- {(float(largeur_grille) * taille_cellule)/2.0, 
-	                     (float(hauteur_grille) * taille_cellule)/2.0};
-	        expertise_salinite <- 0.9;
-	    }
-	    
-	    write "=== INITIALISATION TERMINEE ===";
-	    write "Agriculteurs: " + string(nb_agriculteurs);
-	    write "Parcelles: " + string(nb_parcelles);
-	    write "Canaux: " + string(nb_canaux);
-	    write "";
-	}
+        write "=== INITIALISATION SIMULATION RIZIERES ===";
+        write "Dimensions: " + largeur_grille + "x" + hauteur_grille;
+        
+        // Initialiser la grille
+        ask zone_terre {
+            salinite_sol <- rnd(0.5, 2.0);
+        }
+        
+        // Créer les canaux
+        create canal number: nb_canaux {
+            location <- {rnd(float(largeur_grille)), rnd(float(hauteur_grille))};
+            distance_mer <- rnd(5.0, 50.0);
+            
+            if distance_mer < 20.0 {
+                salinite_eau <- rnd(2.0, 5.0);
+            } else {
+                salinite_eau <- rnd(0.5, 2.0);
+            }
+            
+            etat_ecluse <- true;
+            parcelles_connectees <- [];
+            
+            write "Canal " + name + " créé à " + distance_mer + "km de la mer";
+        }
+        
+        // Créer les parcelles
+        create parcelle number: nb_parcelles {
+            location <- {rnd(float(largeur_grille)), rnd(float(hauteur_grille))};
+            taille <- rnd(0.5, 2.0);
+            salinite <- rnd(0.5, 3.0);
+            niveau_eau <- rnd(5.0, 15.0);
+            stade_croissance <- 0;
+            
+            if flip(0.7) {
+                type_riz <- "traditionnel";
+                rendement_potentiel <- 5.0;
+            } else {
+                type_riz <- "resistant_sel";
+                rendement_potentiel <- 6.0;
+            }
+            
+            rendement_reel <- 0.0;
+            
+            // Connecter au canal le plus proche
+            canal_connecte <- canal closest_to self;
+            if canal_connecte != nil {
+                ask canal_connecte {
+                    parcelles_connectees <- parcelles_connectees + myself;
+                }
+            }
+        }
+        
+        // Créer les agriculteurs
+        create agriculteur number: nb_agriculteurs {
+            location <- {rnd(float(largeur_grille)), rnd(float(hauteur_grille))};
+            capital <- rnd(10000000.0, 50000000.0);
+            experience <- rnd(1, 20);
+            
+            if experience < 5 {
+                strategie <- "suiveur";
+            } else if experience < 10 {
+                strategie <- "prudent";
+            } else {
+                strategie <- "optimiste";
+            }
+            
+            connaissances_salinite <- float(experience) / 20.0;
+            a_pompe <- flip(0.6);
+            mes_parcelles <- [];
+            
+            // Attribuer 2-5 parcelles
+            int nb_parcelles_attribuees <- rnd(2, 5);
+            list<parcelle> parcelles_disponibles <- list<parcelle>(parcelle where (each.proprietaire = nil));
+            
+            loop times: nb_parcelles_attribuees {
+                if !empty(parcelles_disponibles) {
+                    parcelle p <- one_of(parcelles_disponibles);
+                    p.proprietaire <- self;
+                    mes_parcelles <- mes_parcelles + p;
+                    parcelles_disponibles <- parcelles_disponibles - p;
+                }
+            }
+            
+            // Identifier voisins (distance 10 unités de grille)
+            voisins <- list<agriculteur>((agriculteur at_distance 10.0) - self);
+            
+            write "Agriculteur " + name + " (" + strategie + ") avec " + length(mes_parcelles) + " parcelles";
+        }
+        
+        // Créer capteurs
+        create capteur number: nb_capteurs {
+            location <- {rnd(float(largeur_grille)), rnd(float(hauteur_grille))};
+            rayon_mesure <- 10.0; // unités de grille
+            frequence_mesure <- 24;
+        }
+        
+        // Créer conseiller
+        create conseiller number: nb_conseillers {
+            location <- {float(largeur_grille)/2.0, float(hauteur_grille)/2.0};
+            expertise_salinite <- 0.9;
+        }
+        
+        write "=== INITIALISATION TERMINEE ===";
+        write "Agriculteurs: " + nb_agriculteurs;
+        write "Parcelles: " + nb_parcelles;
+        write "Canaux: " + nb_canaux;
+        write "";
+    }
     
     
     // ============ DYNAMIQUE GLOBALE ============
@@ -174,7 +171,7 @@ global {
         if jour_dans_cycle < 40 {
             saison <- 1; // Saison sèche
             niveau_pluie <- rnd(0.0, 5.0);
-            intensite_maree <- 0.7 + 0.3 * cos((jour_simulation * 2 * #pi) / 28); // Cycle lunaire
+            intensite_maree <- 0.7 + 0.3 * cos((jour_simulation * 2 * #pi) / 28);
         } else if jour_dans_cycle < 80 {
             saison <- 2; // Saison pluies
             niveau_pluie <- rnd(20.0, 80.0);
@@ -196,10 +193,10 @@ global {
     
     reflex afficher_stats when: every(30 #cycles) {
         write "=== JOUR " + jour_simulation + " - SAISON " + saison + " ===";
-        write "Salinité moyenne: " + salinite_moyenne with_precision 2 + " g/L";
+        write "Salinité moyenne: " + (salinite_moyenne with_precision 2) + " g/L";
         write "Parcelles dégradées: " + nb_parcelles_degradees + "/" + nb_parcelles;
-        write "Rendement total: " + rendement_total with_precision 1 + " tonnes";
-        write "Marée: " + intensite_maree with_precision 2 + " | Pluie: " + niveau_pluie with_precision 1 + "mm";
+        write "Rendement total: " + (rendement_total with_precision 1) + " tonnes";
+        write "Marée: " + (intensite_maree with_precision 2) + " | Pluie: " + (niveau_pluie with_precision 1) + "mm";
         write "";
     }
 }
@@ -209,18 +206,17 @@ global {
 
 grid zone_terre width: largeur_grille height: hauteur_grille {
     float salinite_sol <- 0.0;
+    rgb color <- rgb(34, 139, 34);
     
-    rgb color <- rgb(34, 139, 34) update: calcul_couleur_sol();
-    
-    rgb calcul_couleur_sol {
+    reflex actualiser_couleur {
         if salinite_sol < 2.0 {
-            return rgb(34, 139, 34);      // vert foncé
+            color <- rgb(34, 139, 34);      // vert foncé
         } else if salinite_sol < 4.0 {
-            return rgb(154, 205, 50);      // vert clair
+            color <- rgb(154, 205, 50);     // vert clair
         } else if salinite_sol < 6.0 {
-            return rgb(255, 255, 0);       // jaune
+            color <- rgb(255, 255, 0);      // jaune
         } else {
-            return rgb(255, 140, 0);       // orange
+            color <- rgb(255, 140, 0);      // orange
         }
     }
 }
@@ -240,20 +236,8 @@ species parcelle {
     agriculteur proprietaire;
     canal canal_connecte;
     
-    // Aspect visuel
+    // Couleur
     rgb couleur_parcelle <- #green;
-
-	reflex actualiser_couleur {
-	    if salinite < 2.0 {
-	        couleur_parcelle <- #darkgreen;
-	    } else if salinite < 4.0 {
-	        couleur_parcelle <- #lightgreen;
-	    } else if salinite < 8.0 {
-	        couleur_parcelle <- #yellow;
-	    } else {
-	        couleur_parcelle <- #orange;
-	    }
-	}
     
     // Evolution de la salinité
     reflex evoluer_salinite {
@@ -283,12 +267,24 @@ species parcelle {
         niveau_eau <- max(0.0, min(50.0, niveau_eau));
     }
     
+    // Mettre à jour couleur (APRÈS evoluer_salinite)
+    reflex actualiser_couleur {
+        if salinite < 2.0 {
+            couleur_parcelle <- rgb(0, 100, 0);      // Vert foncé
+        } else if salinite < 4.0 {
+            couleur_parcelle <- rgb(144, 238, 144);  // Vert clair
+        } else if salinite < 8.0 {
+            couleur_parcelle <- rgb(255, 255, 0);    // Jaune
+        } else {
+            couleur_parcelle <- rgb(255, 140, 0);    // Orange
+        }
+    }
+    
     // Croissance du riz
     reflex croitre when: stade_croissance < 120 {
         if niveau_eau > seuil_eau_minimum and salinite < 8.0 {
             float vitesse_croissance <- 1.0;
             
-            // Ralentissement si conditions sous-optimales
             if salinite > 4.0 {
                 vitesse_croissance <- vitesse_croissance * (1 - (salinite - 4) / 10);
             }
@@ -303,36 +299,35 @@ species parcelle {
     
     // Calcul rendement à maturité
     reflex calculer_rendement when: stade_croissance = 120 {
-	    // Facteur eau
-	    float facteur_eau <- 1.0;
-	    if niveau_eau <= 10 {
-	        facteur_eau <- niveau_eau / 10;
-	    }
-	    
-	    // Facteur salinité
-	    float facteur_salinite <- 1.0;
-	    if salinite < 2.0 {
-	        facteur_salinite <- 1.0;
-	    } else if salinite < 4.0 {
-	        facteur_salinite <- 0.8;
-	    } else if salinite < 6.0 {
-	        facteur_salinite <- 0.5;
-	    } else {
-	        facteur_salinite <- 0.2;
-	    }
-	
-	    rendement_reel <- rendement_potentiel * taille * facteur_eau * facteur_salinite;
-	    stade_croissance <- 0;
-	}
+        float facteur_eau <- 1.0;
+        if niveau_eau <= 10 {
+            facteur_eau <- niveau_eau / 10;
+        }
+        
+        float facteur_salinite <- 1.0;
+        if salinite < 2.0 {
+            facteur_salinite <- 1.0;
+        } else if salinite < 4.0 {
+            facteur_salinite <- 0.8;
+        } else if salinite < 6.0 {
+            facteur_salinite <- 0.5;
+        } else {
+            facteur_salinite <- 0.2;
+        }
+
+        rendement_reel <- rendement_potentiel * taille * facteur_eau * facteur_salinite;
+        stade_croissance <- 0;
+    }
     
-    // Recevoir irrigation
     action recevoir_irrigation(float volume, float salinite_apport) {
         niveau_eau <- niveau_eau + volume;
-        salinite <- (salinite * niveau_eau + salinite_apport * volume) / (niveau_eau + volume);
+        if niveau_eau > 0 {
+            salinite <- (salinite * niveau_eau + salinite_apport * volume) / (niveau_eau + volume);
+        }
     }
     
     aspect default {
-        draw circle(50) color: couleur_parcelle border: #black;
+        draw square(1) color: couleur_parcelle border: #black;
     }
 }
 
@@ -343,7 +338,7 @@ species agriculteur skills: [moving] {
     // Attributs
     float capital;
     int experience;
-    string strategie; // "prudent", "optimiste", "suiveur"
+    string strategie;
     float connaissances_salinite;
     list<parcelle> mes_parcelles;
     list<agriculteur> voisins;
@@ -355,20 +350,25 @@ species agriculteur skills: [moving] {
     
     // Seuils de décision
     float seuil_salinite <- 2.5;
-
-	reflex initialiser_seuil when: cycle = 0 {
-	    if strategie = "prudent" {
-	        seuil_salinite <- 2.0;
-	    } else if strategie = "optimiste" {
-	        seuil_salinite <- 3.5;
-	    } else {
-	        seuil_salinite <- 2.5;
-	    }
-	}
-    // Observation et décision
+    rgb ma_couleur <- #yellow;
+    
+    // Initialisation des paramètres selon stratégie
+    reflex initialiser_parametres when: cycle = 0 {
+        if strategie = "prudent" {
+            seuil_salinite <- 2.0;
+            ma_couleur <- #blue;
+        } else if strategie = "optimiste" {
+            seuil_salinite <- 3.5;
+            ma_couleur <- #red;
+        } else {
+            seuil_salinite <- 2.5;
+            ma_couleur <- #yellow;
+        }
+    }
+    
+    // Observer et décider
     reflex gerer_parcelles {
         loop p over: mes_parcelles {
-            // Décision d'irrigation
             if p.salinite > seuil_salinite or p.niveau_eau < seuil_eau_minimum {
                 if capital > cout_irrigation_m3 * 100 and a_pompe {
                     do irriguer(p);
@@ -379,13 +379,13 @@ species agriculteur skills: [moving] {
     
     // Action irrigation
     action irriguer(parcelle p) {
-        float volume_irrigation <- 20.0; // cm d'eau
+        float volume_irrigation <- 20.0;
         float cout <- volume_irrigation * cout_irrigation_m3;
         
         if capital >= cout {
             capital <- capital - cout;
             ask p {
-                do recevoir_irrigation(volume_irrigation, 0.5); // Eau douce peu salée
+                do recevoir_irrigation(volume_irrigation, 0.5);
             }
             nb_irrigations_saison <- nb_irrigations_saison + 1;
         }
@@ -403,8 +403,7 @@ species agriculteur skills: [moving] {
     reflex apprendre when: saison = 3 and every(120 #cycles) {
         float rendement_moyen <- mean(mes_parcelles collect each.rendement_reel);
         
-        if rendement_moyen < 3.0 { // Mauvais rendement
-            // Ajuster stratégie
+        if rendement_moyen < 3.0 {
             if strategie = "optimiste" {
                 seuil_salinite <- seuil_salinite - 0.5;
             }
@@ -412,22 +411,10 @@ species agriculteur skills: [moving] {
         }
     }
     
-    rgb ma_couleur <- #yellow;
-
-	reflex actualiser_couleur when: cycle = 0 {
-	    if strategie = "prudent" {
-	        ma_couleur <- #blue;
-	    } else if strategie = "optimiste" {
-	        ma_couleur <- #red;
-	    } else {
-	        ma_couleur <- #yellow;
-	    }
-	}
-	
-	aspect default {
-	    draw triangle(200) color: ma_couleur border: #black;
-	    draw circle(100) at: location color: #white;
-	}
+    aspect default {
+        draw triangle(1) color: ma_couleur border: #black;
+        draw circle(0.3) at: location color: #white;
+    }
 }
 
 
@@ -444,24 +431,24 @@ species canal {
     // Propagation salinité
     reflex propager_salinite {
         if etat_ecluse {
-            // Remontée salinité selon marée et distance mer
             float augmentation <- intensite_maree * (1 / distance_mer) * 2.0;
             salinite_eau <- min(35.0, salinite_eau + augmentation);
         } else {
-            // Dilution progressive si écluse fermée
             salinite_eau <- max(0.5, salinite_eau * 0.95);
         }
     }
     
     // Gestion collective écluse
     reflex gerer_ecluse when: every(7 #cycles) {
-        list<agriculteur> agriculteurs_concernes <- (parcelles_connectees collect each.proprietaire);
+        list<agriculteur> agriculteurs_concernes <- list<agriculteur>(parcelles_connectees collect each.proprietaire);
         int votes_fermeture <- 0;
         
         loop ag over: agriculteurs_concernes {
-            float salinite_moy <- mean(ag.mes_parcelles collect each.salinite);
-            if salinite_moy > 3.0 {
-                votes_fermeture <- votes_fermeture + 1;
+            if ag != nil {
+                float salinite_moy <- mean(ag.mes_parcelles collect each.salinite);
+                if salinite_moy > 3.0 {
+                    votes_fermeture <- votes_fermeture + 1;
+                }
             }
         }
         
@@ -469,7 +456,7 @@ species canal {
     }
     
     aspect default {
-        draw square(300) color: etat_ecluse ? #blue : #red border: #black;
+        draw square(1.5) color: etat_ecluse ? #blue : #red border: #black;
     }
 }
 
@@ -486,13 +473,13 @@ species capteur {
         if !empty(parcelles_proches) {
             float salinite_detectee <- mean(parcelles_proches collect each.salinite);
             
-            // Alerte si dépassement seuil
             if salinite_detectee > seuil_salinite_critique {
-                list<agriculteur> a_alerter <- (parcelles_proches collect each.proprietaire);
+                list<agriculteur> a_alerter <- list<agriculteur>(parcelles_proches collect each.proprietaire);
                 
                 ask a_alerter {
-                    // Réduire seuil de tolérance
-                    seuil_salinite <- max(1.5, seuil_salinite - 0.2);
+                    if self != nil {
+                        seuil_salinite <- max(1.5, seuil_salinite - 0.2);
+                    }
                 }
             }
         }
@@ -500,7 +487,7 @@ species capteur {
     
     aspect default {
         draw circle(rayon_mesure) color: #cyan border: #blue empty: true;
-        draw sphere(150) color: #cyan;
+        draw sphere(0.5) color: #cyan;
     }
 }
 
@@ -509,24 +496,17 @@ species capteur {
 
 species conseiller {
     float expertise_salinite;
-    
-    // Création une géométrie d'étoile
-    geometry forme_etoile <- nil;
+    geometry forme_etoile;
     
     init {
-        // Création une étoile à 5 branches
-        float rayon_ext <- 300.0;
-        float rayon_int <- 120.0;
         list<point> points_etoile <- [];
-        
         loop i from: 0 to: 9 {
             float angle <- i * 36.0;
-            float rayon <- (i mod 2 = 0) ? rayon_ext : rayon_int;
+            float rayon <- (i mod 2 = 0) ? 1.5 : 0.6;
             float x <- rayon * cos(angle);
             float y <- rayon * sin(angle);
             points_etoile <- points_etoile + {x, y};
         }
-        
         forme_etoile <- polygon(points_etoile);
     }
     
@@ -540,6 +520,7 @@ species conseiller {
             if rendement_moyen < 2.0 {
                 strategie <- "prudent";
                 seuil_salinite <- 2.0;
+                ma_couleur <- #blue;
             }
         }
     }
@@ -549,7 +530,8 @@ species conseiller {
     }
 }
 
-// ============ EXPERIMENT SIMULATION ============
+
+// ============ EXPERIMENT ============
 
 experiment Simulation_Rizieres type: gui {
     
@@ -574,7 +556,7 @@ experiment Simulation_Rizieres type: gui {
         
         // Graphique salinité
         display "Évolution Salinité" refresh: every(1 #cycles) {
-            chart "Salinité moyenne du delta" type: series size: {1.0, 0.5} position: {0, 0} {
+            chart "Salinité moyenne du delta" type: series {
                 data "Salinité (g/L)" value: salinite_moyenne color: #red marker: false;
                 data "Seuil critique" value: seuil_salinite_critique color: #orange marker: false;
             }
@@ -582,7 +564,7 @@ experiment Simulation_Rizieres type: gui {
         
         // Graphique rendements
         display "Rendements" refresh: every(10 #cycles) {
-            chart "Production de riz" type: series size: {1.0, 0.5} position: {0, 0.5} {
+            chart "Production de riz" type: series {
                 data "Rendement total (tonnes)" value: rendement_total color: #green marker: false;
             }
         }
